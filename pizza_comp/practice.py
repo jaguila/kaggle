@@ -1,7 +1,10 @@
 import pandas as pd
-import statsmodels.formula.api as sm
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import patsy
+
+#things to remember when using regressions OLS or LOGIT you use train['y'],train['vars'] instead of formula for prediction
+
 
 loc="C:\\dex\\datascience\\kaggle\\pizza_comp\\"
 test_raw=loc+"test.json"
@@ -56,7 +59,7 @@ def var_train(j):
     #create list of keys with only integers
     c=0
     ints=[]
-    for i in test.dtypes:
+    for i in j.dtypes:
         if i=='int64':
             ints1=j.keys()[c]
             ints.append(ints1)
@@ -68,25 +71,7 @@ def var_train(j):
     return ints
         
 def regression(j,k):
-    ints=var_train(k)
-    ints.append('y')
-    #create a dataframe out of newlist
-    jj=[i for i in j.keys() if i not in ints and i!='y']
-    j_remove=j[jj]
-    #print j_remove.keys()
-    #j4=j[ints]
-    xfer=[]
-    for i in j['y']:
-        xfer.append(i)
-    #j4=j4[-(j4.index.isin(j_remove.index))]
-    j=j[-(j.index.isin(j_remove.index))]
-    #j4['y']=xfer
-    #print j4['y']
-    print j.keys()
-    #print j4.describe()
-    #create list of all keys to be able to reference by index
     keys=[]
-    #for i in j4.keys():
     for i in j.keys():
         keys.append(i)
     c=1
@@ -101,31 +86,19 @@ def regression(j,k):
             form+="+%s" %i
         c+=1
     form=str(form)
+    print form
     #below is linear regression
     #res=sm.ols(formula=form, data=j).fit()
     #below is logit regression used for binary dependant variables
     #y, X=patsy.dmatrices(form,j,return_type='dataframe')
-    #res=sm.Logit(y, X).fit()
+    cols=j.columns[1:]
+    #X=sm.add_constant(X)
+    res=sm.Logit(j['y'], j[cols]).fit()
     #below prints out the summary information
     #print res.summary()
     #below prints out the parameters aka coefficients
-    #return res
+    return res
 
-
-            
-
-
-train=import_json(train_raw)
-test=import_json(test_raw)
-print test.keys()
-test1=var_train(test)
-test2=test[test1]
-
-
-
-#plott(train)
-res_train=regression(train,test)
-#print res_train.summary()
 
 
 def predict_count(j,k):
@@ -160,4 +133,94 @@ def negdim(j):
     return neg
 #print negdim(train)
 #print negdim(test)
+
+
+
+def regression_prep(j):
+    #create the datasets that will be used for regression
+    #the variables must be found
+    #find the int variables using the var_train
+    ints=var_train(j)
+    #ints.append('y')
+    #looks for non int variables and appends to jj
+    jj=[i for i in j.keys() if i not in ints and i!='y']
+    j.drop(jj, axis=1 ,inplace=True)
+    return j
+
             
+
+
+
+
+def keydif(j,k):
+    ans=[i for i in j.keys() if i not in k.keys()]
+    print "these are the variables that need to be dropped"
+    for i in ans:
+        if i !='y':
+            print i
+            j.drop(i,axis=1,inplace=True)
+        else:
+            pass
+    return j    
+    
+    
+
+train=import_json(train_raw)
+test=import_json(test_raw)
+test_raw1=import_json(test_raw)
+test1=var_train(test)
+test2=test[test1]
+
+
+
+#plott(train)
+train_r=regression_prep(train)
+#print train_r.keys()
+p_res_test=keydif(test,train_r)
+p_res_train=keydif(train_r,test)
+cols=p_res_train.columns.tolist()
+cols = cols[-1:] + cols[:-1]
+p_res_train=p_res_train[cols]
+
+res_train=regression(p_res_train,p_res_test)
+print res_train.summary()
+#print predict_count(res_train,test)
+#print p_res_train.keys()
+#print p_res_test.keys()
+#train.hist()
+#plt.show()
+#print p_res_train.shape
+ans=res_train.predict(p_res_test)
+
+def fix(j,k):
+#ans=[str(i)+", "for i in ans]
+    ans2=[]
+    c=0
+    for i in j:
+        if i > k:
+            ans2.append(1)
+            c+=1
+        else:
+            ans2.append(0)
+    print c
+    return ans2
+ans2=fix(ans,.25)
+#fix(ans,.30)
+req_id=[]
+for i in test_raw1['request_id']:
+    req_id.append(i.encode('ascii','ignore'))
+ans3=zip(req_id,ans2)
+            
+
+
+
+print "count of less than 25% %s count of all %s" %len(ans2), len(ans)
+
+import csv
+with open(loc+'ans.csv','wb') as csvfile:
+    answriter=csv.writer(csvfile, delimiter=',')
+    answriter.writerow(['request_id','requester_received_pizza'])
+    for i in range(0,len(ans3)):
+        answriter.writerow(ans3[i])
+
+
