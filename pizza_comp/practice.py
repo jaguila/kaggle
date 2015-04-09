@@ -173,7 +173,7 @@ test2=test[test1]
 
 
 
-#plott(train)
+plott(train)
 train_r=regression_prep(train)
 #print train_r.keys()
 p_res_test=keydif(test,train_r)
