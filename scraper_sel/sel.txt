@@ -1,0 +1,33 @@
+from selenium import webdriver
+import time
+prof='D:/Users/dexter.aguila/AppData/Roaming/Mozilla/Firefox/Profiles/z61utbyh.default'
+# prof_new=prof.replace("\\","/")
+browser=webdriver.Firefox(prof)
+
+f=open('p.txt', 'r')
+pswd=f.read()
+type(browser)
+browser.get('https://imedidata.com')
+userElem=browser.find_element_by_id('session_username')
+passElem=browser.find_element_by_id('session_password')
+userElem.send_keys('aguila.dexter')
+passElem.send_keys(pswd)
+passElem.submit()
+time.sleep(5)
+linkElem=browser.find_elements_by_link_text('Beigeneclinical')[1]
+linkElem.click()
+time.sleep(5)
+reporterElem=browser.find_element_by_link_text('Reporter')
+reporterElem.click()
+time.sleep(5)
+browser.execute_script("window.scrollTo(0, 10)") 
+SODElem=browser.find_element_by_link_text('SAS On Demand')
+SODElem.click()
+time.sleep(5)
+browser.switch_to_window(browser.window_handles[1])
+time.sleep(5)
+# new=browser.switch_to_window('')
+study=browser.find_element_by_xpath("//select[@name='ddlProj']/option[text()='BGB-3111-304']").click()
+
+#new=browser.switch_to_active_element()
+#sudy=new.find_element_by_name('ddlProj')
